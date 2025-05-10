@@ -1,0 +1,45 @@
+name: Build Pygame APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y zip unzip openjdk-17-jdk python3-pip git pkg-config libgl1-mesa-dev
+        pip install --upgrade pip
+        pip install buildozer cython
+
+    - name: Initialize Buildozer
+      run: |
+        buildozer init
+
+    - name: Inject requirements.txt into buildozer.spec
+      run: |
+        REQUIREMENTS=$(paste -sd, requirements.txt)
+        sed -i "s/^requirements = .*/requirements = $REQUIREMENTS/" buildozer.spec
+
+    - name: Build APK
+      run: |
+        buildozer android debug
+
+    - name: Upload APK
+      uses: actions/upload-artifact@v3
+      with:
+        name: pygame-apk
+        path: bin/*.apk
